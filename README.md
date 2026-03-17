@@ -2,8 +2,7 @@
 
 A configurable, segment-based status line for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that shows git info, context usage, session cost, model name, and more — right in your terminal.
 
-<!-- TODO: Add screenshot here -->
-<!-- ![statusline preview](./screenshot.png) -->
+![statusline preview](./screenshot.png)
 
 ## Features
 
