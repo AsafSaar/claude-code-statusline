@@ -6,8 +6,6 @@
 #   — or —
 #   .\install.ps1
 
-$ErrorActionPreference = 'Stop'
-
 $ClaudeDir = Join-Path $env:USERPROFILE ".claude"
 $ScriptName = "statusline.ps1"
 $SettingsFile = Join-Path $ClaudeDir "settings.json"
@@ -24,12 +22,19 @@ if (-not (Test-Path $ClaudeDir)) {
     New-Item -ItemType Directory -Path $ClaudeDir -Force | Out-Null
 }
 
-# 2. Copy or download the script
-$ScriptPath = $MyInvocation.MyCommand.Path
-$ScriptDir = if ($ScriptPath) { Split-Path -Parent $ScriptPath } else { $null }
-$SourceScript = if ($ScriptDir) { Join-Path $ScriptDir $ScriptName } else { $null }
+# 2. Try to detect local repo copy, otherwise download
+$SourceScript = $null
+try {
+    $cmdPath = $MyInvocation.MyCommand.Path
+    if ($cmdPath -and (Test-Path $cmdPath)) {
+        $candidate = Join-Path (Split-Path -Parent $cmdPath) $ScriptName
+        if (Test-Path $candidate) {
+            $SourceScript = $candidate
+        }
+    }
+} catch {}
 
-if ($SourceScript -and (Test-Path $SourceScript)) {
+if ($SourceScript) {
     Write-Host "Copying statusline.ps1 from local repo..."
     Copy-Item $SourceScript $InstallPath -Force
 } else {
@@ -39,7 +44,7 @@ if ($SourceScript -and (Test-Path $SourceScript)) {
     } catch {
         Write-Host "Error: Failed to download statusline.ps1"
         Write-Host "  $_"
-        exit 1
+        return
     }
 }
 
@@ -60,9 +65,13 @@ $StatusLineConfig = @{
 }
 
 if (Test-Path $SettingsFile) {
-    $settings = Get-Content $SettingsFile -Raw | ConvertFrom-Json
+    try {
+        $settings = Get-Content $SettingsFile -Raw | ConvertFrom-Json
+    } catch {
+        $settings = $null
+    }
 
-    if ($settings.statusLine -and $settings.statusLine.command) {
+    if ($settings -and $settings.statusLine -and $settings.statusLine.command) {
         Write-Host ""
         Write-Host "settings.json already has a statusLine configured:"
         Write-Host "  $($settings.statusLine.command)"
@@ -73,12 +82,16 @@ if (Test-Path $SettingsFile) {
             Write-Host "  `"statusLine`": { `"type`": `"command`", `"command`": `"pwsh -NoProfile -File $InstallPath`" }"
             Write-Host ""
             Write-Host "Done! Restart Claude Code to see the status line."
-            exit 0
+            return
         }
     }
 
-    $settings | Add-Member -NotePropertyName "statusLine" -NotePropertyValue $StatusLineConfig -Force
-    $settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile -Encoding UTF8
+    if ($settings) {
+        $settings | Add-Member -NotePropertyName "statusLine" -NotePropertyValue $StatusLineConfig -Force
+        $settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile -Encoding UTF8
+    } else {
+        @{ statusLine = $StatusLineConfig } | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile -Encoding UTF8
+    }
     Write-Host "Updated $SettingsFile"
 } else {
     @{ statusLine = $StatusLineConfig } | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile -Encoding UTF8
