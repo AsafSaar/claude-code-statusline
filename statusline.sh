@@ -26,8 +26,21 @@ ENABLED_SEGMENTS=(
   "ts_errors"     # TypeScript errors (cached)
 )
 
-# Separator between segments
-SEP="  "
+# Separator between segments (dimmed pipe)
+SEP=$' \033[90m|\033[0m '
+
+# ============================================================================
+# ICONS — Unicode characters for each segment
+# ============================================================================
+ICON_CWD="📂"
+ICON_DIRTY="●"
+ICON_MODEL="🧠"
+ICON_NODE="⬢"
+ICON_CONTEXT="🔋"
+ICON_COST="💰"
+ICON_DURATION="⏱"
+ICON_LINES="✏"
+ICON_TS_ERRORS="⚠"
 
 # ============================================================================
 # HELPERS
@@ -70,7 +83,7 @@ cwd=$(echo "$input" | jq -r '.cwd // empty')
 # ============================================================================
 seg_cwd=""
 if segment_enabled "cwd" && [[ -n "${cwd:-}" ]]; then
-  seg_cwd=$(printf '\033[37m%s\033[0m' "$(basename "$cwd")")
+  seg_cwd=$(printf '\033[37m%s %s\033[0m' "$ICON_CWD" "$(basename "$cwd")")
 fi
 
 # ============================================================================
@@ -92,7 +105,7 @@ seg_dirty=""
 if segment_enabled "dirty" && [[ -n "${cwd:-}" ]] && [[ -n "$git_branch" ]]; then
   dirty_count=$(git --no-optional-locks -C "$cwd" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$dirty_count" -gt 0 ]]; then
-    seg_dirty=$(printf '\033[33m%s dirty\033[0m' "$dirty_count")
+    seg_dirty=$(printf '\033[33m%s %s dirty\033[0m' "$ICON_DIRTY" "$dirty_count")
   fi
 fi
 
@@ -118,7 +131,7 @@ seg_model=""
 if segment_enabled "model"; then
   model_name=$(echo "$input" | jq -r '.model.display_name // empty')
   if [[ -n "${model_name:-}" ]]; then
-    seg_model=$(printf '\033[38;5;147m%s\033[0m' "$model_name")
+    seg_model=$(printf '\033[38;5;147m%s %s\033[0m' "$ICON_MODEL" "$model_name")
   fi
 fi
 
@@ -129,7 +142,7 @@ seg_node=""
 if segment_enabled "node"; then
   raw_node=$(node --version 2>/dev/null || true)
   if [[ -n "${raw_node:-}" ]]; then
-    seg_node=$(printf '\033[32mnode %s\033[0m' "${raw_node#v}")
+    seg_node=$(printf '\033[32m%s %s\033[0m' "$ICON_NODE" "${raw_node#v}")
   fi
 fi
 
@@ -148,7 +161,7 @@ if segment_enabled "context"; then
     else
       ctx_color='\033[32m'   # green
     fi
-    seg_context=$(printf "${ctx_color}ctx %s%%\033[0m" "$pct_int")
+    seg_context=$(printf "${ctx_color}%s %s%%\033[0m" "$ICON_CONTEXT" "$pct_int")
   fi
 fi
 
@@ -160,7 +173,7 @@ if segment_enabled "cost"; then
   total_cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
   if [[ -n "${total_cost:-}" ]]; then
     formatted_cost=$(awk -v c="$total_cost" 'BEGIN { printf "%.3f", c }')
-    seg_cost=$(printf '\033[35m$%s\033[0m' "$formatted_cost")
+    seg_cost=$(printf '\033[35m%s $%s\033[0m' "$ICON_COST" "$formatted_cost")
   fi
 fi
 
@@ -174,10 +187,13 @@ if segment_enabled "duration"; then
     elapsed=$(( ${duration_ms%.*} / 1000 ))
     h=$(( elapsed / 3600 ))
     m=$(( (elapsed % 3600) / 60 ))
+    s=$(( elapsed % 60 ))
     if [[ "$h" -gt 0 ]]; then
-      seg_duration=$(printf '\033[34m%sh%sm\033[0m' "$h" "$m")
+      seg_duration=$(printf '\033[34m%s %sh%sm\033[0m' "$ICON_DURATION" "$h" "$m")
     elif [[ "$m" -gt 0 ]]; then
-      seg_duration=$(printf '\033[34m%sm\033[0m' "$m")
+      seg_duration=$(printf '\033[34m%s %sm%ss\033[0m' "$ICON_DURATION" "$m" "$s")
+    elif [[ "$s" -gt 0 ]]; then
+      seg_duration=$(printf '\033[34m%s %ss\033[0m' "$ICON_DURATION" "$s")
     fi
   fi
 fi
@@ -190,7 +206,7 @@ if segment_enabled "lines"; then
   lines_added=$(echo "$input" | jq -r '.cost.total_lines_added // 0')
   lines_removed=$(echo "$input" | jq -r '.cost.total_lines_removed // 0')
   if [[ "$lines_added" -gt 0 ]] || [[ "$lines_removed" -gt 0 ]]; then
-    seg_lines=$(printf '\033[32m+%s\033[0m/\033[31m-%s\033[0m' "$lines_added" "$lines_removed")
+    seg_lines=$(printf '\033[32m%s +%s\033[0m/\033[31m-%s\033[0m' "$ICON_LINES" "$lines_added" "$lines_removed")
   fi
 fi
 
@@ -208,7 +224,7 @@ if segment_enabled "ts_errors" && [[ -n "${cwd:-}" ]]; then
     if [[ "$age" -le 300 ]]; then
       ts_err=$(head -1 "$cache_file" 2>/dev/null | tr -d ' ')
       if [[ -n "${ts_err:-}" ]] && [[ "$ts_err" -gt 0 ]] 2>/dev/null; then
-        seg_ts_errors=$(printf '\033[31mTS:%s\033[0m' "$ts_err")
+        seg_ts_errors=$(printf '\033[31m%s TS:%s\033[0m' "$ICON_TS_ERRORS" "$ts_err")
       fi
     fi
   fi

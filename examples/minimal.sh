@@ -10,6 +10,7 @@ set -euo pipefail
 input=$(cat)
 cwd=$(echo "$input" | jq -r '.cwd // empty')
 parts=()
+SEP=$' \033[90m|\033[0m '
 
 # Git branch (cyan)
 if [[ -n "${cwd:-}" ]]; then
@@ -26,20 +27,20 @@ if [[ -n "${used_pct:-}" ]]; then
   if [[ "$pct_int" -ge 80 ]]; then color='\033[31m'
   elif [[ "$pct_int" -ge 50 ]]; then color='\033[33m'
   else color='\033[32m'; fi
-  parts+=("$(printf "${color}ctx %s%%\033[0m" "$pct_int")")
+  parts+=("$(printf "${color}🔋 %s%%\033[0m" "$pct_int")")
 fi
 
 # Cost (magenta)
 total_cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
 if [[ -n "${total_cost:-}" ]]; then
   formatted=$(awk -v c="$total_cost" 'BEGIN { printf "%.3f", c }')
-  parts+=("$(printf '\033[35m$%s\033[0m' "$formatted")")
+  parts+=("$(printf '\033[35m💰 $%s\033[0m' "$formatted")")
 fi
 
 # Output
 output=""
 for i in "${!parts[@]}"; do
-  [[ "$i" -gt 0 ]] && output+="  "
+  [[ "$i" -gt 0 ]] && output+="$SEP"
   output+="${parts[$i]}"
 done
 printf '%s' "$output"

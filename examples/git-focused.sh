@@ -10,10 +10,11 @@ set -euo pipefail
 input=$(cat)
 cwd=$(echo "$input" | jq -r '.cwd // empty')
 parts=()
+SEP=$' \033[90m|\033[0m '
 
 # CWD basename (white)
 if [[ -n "${cwd:-}" ]]; then
-  parts+=("$(printf '\033[37m%s\033[0m' "$(basename "$cwd")")")
+  parts+=("$(printf '\033[37m📂 %s\033[0m' "$(basename "$cwd")")")
 fi
 
 # Git branch (cyan)
@@ -29,7 +30,7 @@ fi
 if [[ -n "${cwd:-}" ]] && [[ -n "$git_branch" ]]; then
   dirty=$(git --no-optional-locks -C "$cwd" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$dirty" -gt 0 ]]; then
-    parts+=("$(printf '\033[33m%s dirty\033[0m' "$dirty")")
+    parts+=("$(printf '\033[33m● %s dirty\033[0m' "$dirty")")
   fi
 fi
 
@@ -61,7 +62,7 @@ if [[ -n "${cwd:-}" ]] && [[ -n "$git_branch" ]]; then
     else
       age_str="${age_m}m ago"
     fi
-    parts+=("$(printf '\033[34mlast commit %s\033[0m' "$age_str")")
+    parts+=("$(printf '\033[34m⏱ last commit %s\033[0m' "$age_str")")
   fi
 fi
 
@@ -69,13 +70,13 @@ fi
 lines_added=$(echo "$input" | jq -r '.cost.total_lines_added // 0')
 lines_removed=$(echo "$input" | jq -r '.cost.total_lines_removed // 0')
 if [[ "$lines_added" -gt 0 ]] || [[ "$lines_removed" -gt 0 ]]; then
-  parts+=("$(printf '\033[32m+%s\033[0m/\033[31m-%s\033[0m' "$lines_added" "$lines_removed")")
+  parts+=("$(printf '\033[32m✏ +%s\033[0m/\033[31m-%s\033[0m' "$lines_added" "$lines_removed")")
 fi
 
 # Output
 output=""
 for i in "${!parts[@]}"; do
-  [[ "$i" -gt 0 ]] && output+="  "
+  [[ "$i" -gt 0 ]] && output+="$SEP"
   output+="${parts[$i]}"
 done
 printf '%s' "$output"

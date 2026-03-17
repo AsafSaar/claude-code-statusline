@@ -7,16 +7,17 @@ A configurable, segment-based status line for [Claude Code](https://docs.anthrop
 
 ## Features
 
+- **Rich icons** — each segment has a dedicated icon (📂 🧠 🔋 💰 ⏱ ✏ ⚠ and more)
 - **Git branch** — current branch with nerd font icon
-- **Dirty files** — count of uncommitted changes (hidden when clean)
-- **Ahead/behind** — commits ahead/behind remote tracking branch
-- **Model name** — which Claude model is active (Opus, Sonnet, Haiku)
-- **Node.js version** — detected from your shell environment
-- **Context usage** — color-coded: green (<50%), yellow (50-79%), red (80%+)
-- **Session cost** — real cost from Claude Code (not estimated)
-- **Session duration** — how long you've been in this session
-- **Lines changed** — lines added/removed this session
-- **TypeScript errors** — from a cached `tsc` output (non-blocking)
+- **Dirty files** — ● count of uncommitted changes (hidden when clean)
+- **Ahead/behind** — ↑↓ commits ahead/behind remote tracking branch
+- **Model name** — 🧠 which Claude model is active (Opus, Sonnet, Haiku)
+- **Node.js version** — ⬢ detected from your shell environment
+- **Context usage** — 🔋 color-coded: green (<50%), yellow (50-79%), red (80%+)
+- **Session cost** — 💰 real cost from Claude Code (not estimated)
+- **Session duration** — ⏱ how long you've been in this session (with seconds)
+- **Lines changed** — ✏ lines added/removed this session
+- **TypeScript errors** — ⚠ from a cached `tsc` output (non-blocking)
 - **Fully configurable** — toggle any segment on/off via a simple array
 - **Cross-platform** — works on macOS, Linux, and Windows
 
@@ -83,19 +84,19 @@ Then restart Claude Code.
 
 ## Segments Reference
 
-| Segment | Color | Visible | Data Source |
-|---------|-------|---------|-------------|
-| `cwd` | White | Always | `json.cwd` |
-| `git_branch` | Cyan | In git repos | `git symbolic-ref` |
-| `dirty` | Yellow | When > 0 | `git status --porcelain` |
-| `ahead_behind` | Yellow | When > 0 | `git rev-list --left-right` |
-| `model` | Light purple | When present | `json.model.display_name` |
-| `node` | Green | When node is available | `node --version` |
-| `context` | Green/Yellow/Red | When present | `json.context_window.used_percentage` |
-| `cost` | Magenta | When present | `json.cost.total_cost_usd` |
-| `duration` | Blue | When > 0m | `json.cost.total_duration_ms` |
-| `lines` | Green/Red | When > 0 | `json.cost.total_lines_added/removed` |
-| `ts_errors` | Red | When > 0 (cached) | `/tmp/tsc-errors-<hash>.txt` |
+| Segment | Icon | Color | Visible | Data Source |
+|---------|------|-------|---------|-------------|
+| `cwd` | 📂 | White | Always | `json.cwd` |
+| `git_branch` | `` | Cyan | In git repos | `git symbolic-ref` |
+| `dirty` | ● | Yellow | When > 0 | `git status --porcelain` |
+| `ahead_behind` | ↑↓ | Yellow | When > 0 | `git rev-list --left-right` |
+| `model` | 🧠 | Light purple | When present | `json.model.display_name` |
+| `node` | ⬢ | Green | When node is available | `node --version` |
+| `context` | 🔋 | Green/Yellow/Red | When present | `json.context_window.used_percentage` |
+| `cost` | 💰 | Magenta | When present | `json.cost.total_cost_usd` |
+| `duration` | ⏱ | Blue | When > 0s | `json.cost.total_duration_ms` |
+| `lines` | ✏ | Green/Red | When > 0 | `json.cost.total_lines_added/removed` |
+| `ts_errors` | ⚠ | Red | When > 0 (cached) | `/tmp/tsc-errors-<hash>.txt` |
 
 ## Customization
 
@@ -139,12 +140,31 @@ $EnabledSegments = @(
 
 ### Change Separator
 
-The separator between segments defaults to two spaces. Edit the `SEP` variable at the top of the script:
+The separator between segments defaults to a dimmed `|` pipe. Edit the `SEP` variable at the top of the script:
 
 ```bash
-SEP=" | "   # pipe-separated
-SEP="  "    # default: two spaces
+SEP=$' \033[90m|\033[0m '   # default: dimmed pipe
+SEP="  "                    # two spaces (no separator)
+SEP=" | "                   # bright pipe
 ```
+
+### Customize Icons
+
+Icons are defined as variables in the `ICONS` section near the top of `statusline.sh`:
+
+```bash
+ICON_CWD="📂"
+ICON_DIRTY="●"
+ICON_MODEL="🧠"
+ICON_NODE="⬢"
+ICON_CONTEXT="🔋"
+ICON_COST="💰"
+ICON_DURATION="⏱"
+ICON_LINES="✏"
+ICON_TS_ERRORS="⚠"
+```
+
+Replace any icon with your preferred Unicode character or emoji, or set to `""` to remove it.
 
 ### Change Colors
 

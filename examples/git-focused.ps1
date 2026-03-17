@@ -12,11 +12,13 @@ try { $json = $input | ConvertFrom-Json } catch { Write-Host ""; exit 0 }
 
 $cwd = if ($json.cwd) { $json.cwd } else { "" }
 $parts = @()
+$Sep = " $ESC[90m|$ESC[0m "
 
 # CWD basename (white)
 if ($cwd) {
     $basename = Split-Path $cwd -Leaf
-    $parts += "$ESC[37m$basename$ESC[0m"
+    $folder = [char]::ConvertFromUtf32(0x1F4C2)
+    $parts += "$ESC[37m$folder $basename$ESC[0m"
 }
 
 # Git branch (cyan)
@@ -34,7 +36,8 @@ if ($cwd -and $git_branch) {
     $dirty_output = & git --no-optional-locks -C $cwd status --porcelain 2>$null
     $dirty = if ($dirty_output) { @($dirty_output).Count } else { 0 }
     if ($dirty -gt 0) {
-        $parts += "$ESC[33m$dirty dirty$ESC[0m"
+        $dot = [char]0x25CF
+        $parts += "$ESC[33m$dot $dirty dirty$ESC[0m"
     }
 }
 
@@ -62,10 +65,11 @@ if ($cwd -and $git_branch) {
         $age_d = [math]::Floor($age_s / 86400)
         $age_h = [math]::Floor($age_s / 3600)
         $age_m = [math]::Floor($age_s / 60)
+        $timer = [char]0x23F1
         if ($age_d -gt 0) { $age_str = "${age_d}d ago" }
         elseif ($age_h -gt 0) { $age_str = "${age_h}h ago" }
         else { $age_str = "${age_m}m ago" }
-        $parts += "$ESC[34mlast commit $age_str$ESC[0m"
+        $parts += "$ESC[34m$timer last commit $age_str$ESC[0m"
     }
 }
 
@@ -73,8 +77,9 @@ if ($cwd -and $git_branch) {
 $lines_added = if ($json.cost.total_lines_added) { $json.cost.total_lines_added } else { 0 }
 $lines_removed = if ($json.cost.total_lines_removed) { $json.cost.total_lines_removed } else { 0 }
 if ($lines_added -gt 0 -or $lines_removed -gt 0) {
-    $parts += "$ESC[32m+$lines_added$ESC[0m/$ESC[31m-$lines_removed$ESC[0m"
+    $pencil = [char]0x270F
+    $parts += "$ESC[32m$pencil +$lines_added$ESC[0m/$ESC[31m-$lines_removed$ESC[0m"
 }
 
 # Output
-Write-Host -NoNewline ($parts -join "  ")
+Write-Host -NoNewline ($parts -join $Sep)

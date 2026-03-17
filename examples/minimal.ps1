@@ -12,6 +12,7 @@ try { $json = $input | ConvertFrom-Json } catch { Write-Host ""; exit 0 }
 
 $cwd = if ($json.cwd) { $json.cwd } else { "" }
 $parts = @()
+$Sep = " $ESC[90m|$ESC[0m "
 
 # Git branch (cyan)
 if ($cwd) {
@@ -29,15 +30,17 @@ if ($null -ne $used_pct) {
     if ($pct_int -ge 80) { $color = "$ESC[31m" }
     elseif ($pct_int -ge 50) { $color = "$ESC[33m" }
     else { $color = "$ESC[32m" }
-    $parts += "${color}ctx ${pct_int}%$ESC[0m"
+    $battery = [char]::ConvertFromUtf32(0x1F50B)
+    $parts += "${color}$battery ${pct_int}%$ESC[0m"
 }
 
 # Cost (magenta)
 $total_cost = $json.cost.total_cost_usd
 if ($null -ne $total_cost) {
     $formatted = "{0:F3}" -f [double]$total_cost
-    $parts += "$ESC[35m`$$formatted$ESC[0m"
+    $money = [char]::ConvertFromUtf32(0x1F4B0)
+    $parts += "$ESC[35m$money `$$formatted$ESC[0m"
 }
 
 # Output
-Write-Host -NoNewline ($parts -join "  ")
+Write-Host -NoNewline ($parts -join $Sep)

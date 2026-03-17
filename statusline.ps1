@@ -8,6 +8,8 @@
 
 $ErrorActionPreference = 'SilentlyContinue'
 
+$ESC = [char]27
+
 # ============================================================================
 # CONFIGURATION — comment out any segment you don't want
 # ============================================================================
@@ -25,8 +27,8 @@ $EnabledSegments = @(
     "ts_errors"     # TypeScript errors (cached)
 )
 
-# Separator between segments
-$Sep = "  "
+# Separator between segments (dimmed pipe)
+$Sep = " $ESC[90m|$ESC[0m "
 
 # ============================================================================
 # HELPERS
@@ -34,8 +36,6 @@ $Sep = "  "
 function Test-SegmentEnabled($name) {
     return $EnabledSegments -contains $name
 }
-
-$ESC = [char]27
 
 # ============================================================================
 # READ INPUT
@@ -56,7 +56,8 @@ $cwd = if ($json.cwd) { $json.cwd } else { "" }
 $seg_cwd = ""
 if ((Test-SegmentEnabled "cwd") -and $cwd) {
     $basename = Split-Path $cwd -Leaf
-    $seg_cwd = "$ESC[37m$basename$ESC[0m"
+    $folder = [char]::ConvertFromUtf32(0x1F4C2)
+    $seg_cwd = "$ESC[37m$folder $basename$ESC[0m"
 }
 
 # ============================================================================
@@ -83,7 +84,8 @@ if ((Test-SegmentEnabled "dirty") -and $cwd -and $git_branch) {
         $dirty_output = & git --no-optional-locks -C $cwd status --porcelain 2>$null
         $dirty_count = if ($dirty_output) { @($dirty_output).Count } else { 0 }
         if ($dirty_count -gt 0) {
-            $seg_dirty = "$ESC[33m$dirty_count dirty$ESC[0m"
+            $dot = [char]0x25CF
+            $seg_dirty = "$ESC[33m$dot $dirty_count dirty$ESC[0m"
         }
     } catch {}
 }
@@ -115,7 +117,8 @@ $seg_model = ""
 if (Test-SegmentEnabled "model") {
     $model_name = $json.model.display_name
     if ($model_name) {
-        $seg_model = "$ESC[38;5;147m$model_name$ESC[0m"
+        $brain = [char]::ConvertFromUtf32(0x1F9E0)
+        $seg_model = "$ESC[38;5;147m$brain $model_name$ESC[0m"
     }
 }
 
@@ -128,7 +131,8 @@ if (Test-SegmentEnabled "node") {
         $raw_node = & node --version 2>$null
         if ($raw_node) {
             $node_ver = $raw_node -replace '^v', ''
-            $seg_node = "$ESC[32mnode $node_ver$ESC[0m"
+            $hex = [char]0x2B22
+            $seg_node = "$ESC[32m$hex $node_ver$ESC[0m"
         }
     } catch {}
 }
@@ -148,7 +152,8 @@ if (Test-SegmentEnabled "context") {
         } else {
             $ctx_color = "$ESC[32m"    # green
         }
-        $seg_context = "${ctx_color}ctx ${pct_int}%$ESC[0m"
+        $battery = [char]::ConvertFromUtf32(0x1F50B)
+        $seg_context = "${ctx_color}$battery ${pct_int}%$ESC[0m"
     }
 }
 
@@ -160,7 +165,8 @@ if (Test-SegmentEnabled "cost") {
     $total_cost = $json.cost.total_cost_usd
     if ($null -ne $total_cost) {
         $formatted_cost = "{0:F3}" -f [double]$total_cost
-        $seg_cost = "$ESC[35m`$$formatted_cost$ESC[0m"
+        $money = [char]::ConvertFromUtf32(0x1F4B0)
+        $seg_cost = "$ESC[35m$money `$$formatted_cost$ESC[0m"
     }
 }
 
@@ -174,10 +180,14 @@ if (Test-SegmentEnabled "duration") {
         $elapsed = [math]::Floor([double]$duration_ms / 1000)
         $h = [math]::Floor($elapsed / 3600)
         $m = [math]::Floor(($elapsed % 3600) / 60)
+        $s = $elapsed % 60
+        $timer = [char]0x23F1
         if ($h -gt 0) {
-            $seg_duration = "$ESC[34m${h}h${m}m$ESC[0m"
+            $seg_duration = "$ESC[34m$timer ${h}h${m}m$ESC[0m"
         } elseif ($m -gt 0) {
-            $seg_duration = "$ESC[34m${m}m$ESC[0m"
+            $seg_duration = "$ESC[34m$timer ${m}m${s}s$ESC[0m"
+        } elseif ($s -gt 0) {
+            $seg_duration = "$ESC[34m$timer ${s}s$ESC[0m"
         }
     }
 }
@@ -190,7 +200,8 @@ if (Test-SegmentEnabled "lines") {
     $lines_added = if ($json.cost.total_lines_added) { $json.cost.total_lines_added } else { 0 }
     $lines_removed = if ($json.cost.total_lines_removed) { $json.cost.total_lines_removed } else { 0 }
     if ($lines_added -gt 0 -or $lines_removed -gt 0) {
-        $seg_lines = "$ESC[32m+$lines_added$ESC[0m/$ESC[31m-$lines_removed$ESC[0m"
+        $pencil = [char]0x270F
+        $seg_lines = "$ESC[32m$pencil +$lines_added$ESC[0m/$ESC[31m-$lines_removed$ESC[0m"
     }
 }
 
@@ -209,7 +220,8 @@ if ((Test-SegmentEnabled "ts_errors") -and $cwd) {
         if ($age.TotalSeconds -le 300) {
             $ts_err = (Get-Content $cache_file -First 1).Trim()
             if ($ts_err -and [int]$ts_err -gt 0) {
-                $seg_ts_errors = "$ESC[31mTS:$ts_err$ESC[0m"
+                $warn = [char]0x26A0
+                $seg_ts_errors = "$ESC[31m$warn TS:$ts_err$ESC[0m"
             }
         }
     }
