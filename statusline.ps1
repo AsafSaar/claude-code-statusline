@@ -69,7 +69,7 @@ if ((Test-SegmentEnabled "git_branch") -and $cwd) {
     try {
         $git_branch = & git --no-optional-locks -C $cwd symbolic-ref --short HEAD 2>$null
         if ($git_branch) {
-            $icon = [char]0xe0a0
+            $icon = [char]::ConvertFromUtf32(0x1F33F)
             $seg_git_branch = "$ESC[36m$icon $git_branch$ESC[0m"
         }
     } catch {}
@@ -84,7 +84,7 @@ if ((Test-SegmentEnabled "dirty") -and $cwd -and $git_branch) {
         $dirty_output = & git --no-optional-locks -C $cwd status --porcelain 2>$null
         $dirty_count = if ($dirty_output) { @($dirty_output).Count } else { 0 }
         if ($dirty_count -gt 0) {
-            $dot = [char]0x25CF
+            $dot = [char]::ConvertFromUtf32(0x1F534)
             $seg_dirty = "$ESC[33m$dot $dirty_count dirty$ESC[0m"
         }
     } catch {}
@@ -102,8 +102,8 @@ if ((Test-SegmentEnabled "ahead_behind") -and $cwd -and $git_branch) {
             $ahead = [int]$parts_ab[0]
             $behind = [int]$parts_ab[1]
             if ($ahead -gt 0 -or $behind -gt 0) {
-                $up = [char]0x2191
-                $down = [char]0x2193
+                $up = [char]::ConvertFromUtf32(0x2B06)
+                $down = [char]::ConvertFromUtf32(0x2B07)
                 $seg_ahead_behind = "$ESC[33m$up$ahead $down$behind$ESC[0m"
             }
         }
@@ -131,7 +131,7 @@ if (Test-SegmentEnabled "node") {
         $raw_node = & node --version 2>$null
         if ($raw_node) {
             $node_ver = $raw_node -replace '^v', ''
-            $hex = [char]0x2B22
+            $hex = [char]::ConvertFromUtf32(0x2B22)
             $seg_node = "$ESC[32m$hex $node_ver$ESC[0m"
         }
     } catch {}
@@ -181,7 +181,7 @@ if (Test-SegmentEnabled "duration") {
         $h = [math]::Floor($elapsed / 3600)
         $m = [math]::Floor(($elapsed % 3600) / 60)
         $s = $elapsed % 60
-        $timer = [char]0x23F1
+        $timer = [char]::ConvertFromUtf32(0x23F1)
         if ($h -gt 0) {
             $seg_duration = "$ESC[34m$timer ${h}h${m}m$ESC[0m"
         } elseif ($m -gt 0) {
@@ -200,7 +200,7 @@ if (Test-SegmentEnabled "lines") {
     $lines_added = if ($json.cost.total_lines_added) { $json.cost.total_lines_added } else { 0 }
     $lines_removed = if ($json.cost.total_lines_removed) { $json.cost.total_lines_removed } else { 0 }
     if ($lines_added -gt 0 -or $lines_removed -gt 0) {
-        $pencil = [char]0x270F
+        $pencil = [char]::ConvertFromUtf32(0x270F)
         $seg_lines = "$ESC[32m$pencil +$lines_added$ESC[0m/$ESC[31m-$lines_removed$ESC[0m"
     }
 }
@@ -220,7 +220,7 @@ if ((Test-SegmentEnabled "ts_errors") -and $cwd) {
         if ($age.TotalSeconds -le 300) {
             $ts_err = (Get-Content $cache_file -First 1).Trim()
             if ($ts_err -and [int]$ts_err -gt 0) {
-                $warn = [char]0x26A0
+                $warn = [char]::ConvertFromUtf32(0x26A0)
                 $seg_ts_errors = "$ESC[31m$warn TS:$ts_err$ESC[0m"
             }
         }
@@ -245,4 +245,10 @@ if ($seg_lines)        { $parts += $seg_lines }
 if ($seg_ts_errors)    { $parts += $seg_ts_errors }
 
 $output = $parts -join $Sep
-Write-Host -NoNewline $output
+
+# Write raw UTF-8 bytes directly to stdout to preserve emoji on Windows
+$utf8 = [System.Text.Encoding]::UTF8
+$stdout = [System.Console]::OpenStandardOutput()
+$bytes = $utf8.GetBytes($output)
+$stdout.Write($bytes, 0, $bytes.Length)
+$stdout.Flush()
