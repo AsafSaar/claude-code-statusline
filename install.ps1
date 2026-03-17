@@ -25,10 +25,11 @@ if (-not (Test-Path $ClaudeDir)) {
 }
 
 # 2. Copy or download the script
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$SourceScript = Join-Path $ScriptDir $ScriptName
+$ScriptPath = $MyInvocation.MyCommand.Path
+$ScriptDir = if ($ScriptPath) { Split-Path -Parent $ScriptPath } else { $null }
+$SourceScript = if ($ScriptDir) { Join-Path $ScriptDir $ScriptName } else { $null }
 
-if ($ScriptDir -and (Test-Path $SourceScript)) {
+if ($SourceScript -and (Test-Path $SourceScript)) {
     Write-Host "Copying statusline.ps1 from local repo..."
     Copy-Item $SourceScript $InstallPath -Force
 } else {
