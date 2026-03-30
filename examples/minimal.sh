@@ -16,7 +16,7 @@ SEP=$' \033[90m|\033[0m '
 if [[ -n "${cwd:-}" ]]; then
   branch=$(git --no-optional-locks -C "$cwd" symbolic-ref --short HEAD 2>/dev/null || true)
   if [[ -n "$branch" ]]; then
-    parts+=("$(printf '\033[36m\ue0a0 %s\033[0m' "$branch")")
+    parts+=("$(printf '\033[36m\xee\x82\xa0 %s\033[0m' "$branch")")
   fi
 fi
 

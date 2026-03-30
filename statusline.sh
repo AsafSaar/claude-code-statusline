@@ -94,7 +94,7 @@ git_branch=""
 if segment_enabled "git_branch" && [[ -n "${cwd:-}" ]]; then
   git_branch=$(git --no-optional-locks -C "$cwd" symbolic-ref --short HEAD 2>/dev/null || true)
   if [[ -n "$git_branch" ]]; then
-    seg_git_branch=$(printf '\033[36m\ue0a0 %s\033[0m' "$git_branch")
+    seg_git_branch=$(printf '\033[36m\xee\x82\xa0 %s\033[0m' "$git_branch")
   fi
 fi
 
@@ -119,7 +119,7 @@ if segment_enabled "ahead_behind" && [[ -n "${cwd:-}" ]] && [[ -n "$git_branch" 
     ahead=$(echo "$ab" | awk '{print $1}')
     behind=$(echo "$ab" | awk '{print $2}')
     if [[ "$ahead" -gt 0 ]] || [[ "$behind" -gt 0 ]]; then
-      seg_ahead_behind=$(printf '\033[33m\u2191%s \u2193%s\033[0m' "$ahead" "$behind")
+      seg_ahead_behind=$(printf '\033[33m\xe2\x86\x91%s \xe2\x86\x93%s\033[0m' "$ahead" "$behind")
     fi
   fi
 fi
