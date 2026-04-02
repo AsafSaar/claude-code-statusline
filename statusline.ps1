@@ -152,8 +152,16 @@ if (Test-SegmentEnabled "context") {
         } else {
             $ctx_color = "$ESC[32m"    # green
         }
+        # Build 10-char progress bar (filled=█ U+2588, empty=░ U+2591)
+        $bar_width = 10
+        $filled = [math]::Floor($pct_int * $bar_width / 100)
+        $empty = $bar_width - $filled
+        $full_block = [char]::ConvertFromUtf32(0x2588)
+        $light_block = [char]::ConvertFromUtf32(0x2591)
+        $filled_bar = $full_block * $filled
+        $empty_bar = $light_block * $empty
         $battery = [char]::ConvertFromUtf32(0x1F50B)
-        $seg_context = "${ctx_color}$battery ${pct_int}%$ESC[0m"
+        $seg_context = "${ctx_color}$battery $filled_bar$ESC[90m$empty_bar${ctx_color} ${pct_int}%$ESC[0m"
     }
 }
 

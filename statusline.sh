@@ -161,7 +161,15 @@ if segment_enabled "context"; then
     else
       ctx_color='\033[32m'   # green
     fi
-    seg_context=$(printf "${ctx_color}%s %s%%\033[0m" "$ICON_CONTEXT" "$pct_int")
+    # Build 10-char progress bar (filled=█ U+2588, empty=░ U+2591)
+    bar_width=10
+    filled=$(( pct_int * bar_width / 100 ))
+    empty=$(( bar_width - filled ))
+    filled_bar=""
+    empty_bar=""
+    for ((i=0; i<filled; i++)); do filled_bar+=$(printf '\xe2\x96\x88'); done
+    for ((i=0; i<empty; i++)); do empty_bar+=$(printf '\xe2\x96\x91'); done
+    seg_context=$(printf "${ctx_color}%s %s\033[90m%s${ctx_color} %s%%\033[0m" "$ICON_CONTEXT" "$filled_bar" "$empty_bar" "$pct_int")
   fi
 fi
 
