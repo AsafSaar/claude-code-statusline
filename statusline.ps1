@@ -25,6 +25,8 @@ $EnabledSegments = @(
     "duration"      # Session duration (from Claude Code)
     "lines"         # Lines added/removed this session
     "ts_errors"     # TypeScript errors (cached)
+    "last_commit"   # Time since last git commit (green/yellow/red)
+    "stash"         # Number of stashed changesets
 )
 
 # Separator between segments (dimmed pipe)
@@ -236,6 +238,53 @@ if ((Test-SegmentEnabled "ts_errors") -and $cwd) {
 }
 
 # ============================================================================
+# SEGMENT: last_commit
+# ============================================================================
+$seg_last_commit = ""
+if ((Test-SegmentEnabled "last_commit") -and $cwd -and $git_branch) {
+    try {
+        $last_ts = & git --no-optional-locks -C $cwd log -1 --format=%ct 2>$null
+        if ($last_ts) {
+            $now_ts = [math]::Floor((Get-Date -UFormat %s))
+            $age = $now_ts - [long]$last_ts
+            if ($age -lt 60) {
+                $age_str = "${age}s ago"
+            } elseif ($age -lt 3600) {
+                $age_str = "$([math]::Floor($age / 60))m ago"
+            } elseif ($age -lt 86400) {
+                $age_str = "$([math]::Floor($age / 3600))h ago"
+            } else {
+                $age_str = "$([math]::Floor($age / 86400))d ago"
+            }
+            if ($age -ge 7200) {
+                $lc_color = "$ESC[31m"   # red   > 2h
+            } elseif ($age -ge 1800) {
+                $lc_color = "$ESC[33m"   # yellow > 30min
+            } else {
+                $lc_color = "$ESC[32m"   # green
+            }
+            $clock = [char]::ConvertFromUtf32(0x23F0)
+            $seg_last_commit = "${lc_color}$clock $age_str$ESC[0m"
+        }
+    } catch {}
+}
+
+# ============================================================================
+# SEGMENT: stash
+# ============================================================================
+$seg_stash = ""
+if ((Test-SegmentEnabled "stash") -and $cwd -and $git_branch) {
+    try {
+        $stash_list = & git --no-optional-locks -C $cwd stash list 2>$null
+        $stash_count = if ($stash_list) { @($stash_list).Count } else { 0 }
+        if ($stash_count -gt 0) {
+            $box = [char]::ConvertFromUtf32(0x1F4E6)
+            $seg_stash = "$ESC[33m$box $stash_count$ESC[0m"
+        }
+    } catch {}
+}
+
+# ============================================================================
 # ASSEMBLE OUTPUT
 # ============================================================================
 $parts = @()
@@ -251,6 +300,8 @@ if ($seg_cost)         { $parts += $seg_cost }
 if ($seg_duration)     { $parts += $seg_duration }
 if ($seg_lines)        { $parts += $seg_lines }
 if ($seg_ts_errors)    { $parts += $seg_ts_errors }
+if ($seg_last_commit)  { $parts += $seg_last_commit }
+if ($seg_stash)        { $parts += $seg_stash }
 
 $output = $parts -join $Sep
 

@@ -24,6 +24,8 @@ ENABLED_SEGMENTS=(
   "duration"      # Session duration (from Claude Code)
   "lines"         # Lines added/removed this session
   "ts_errors"     # TypeScript errors (cached)
+  "last_commit"   # Time since last git commit (green/yellow/red)
+  "stash"         # Number of stashed changesets
 )
 
 # Separator between segments (dimmed pipe)
@@ -41,6 +43,8 @@ ICON_COST="💰"
 ICON_DURATION="⏱"
 ICON_LINES="✏"
 ICON_TS_ERRORS="⚠"
+ICON_LAST_COMMIT="⏰"
+ICON_STASH="📦"
 
 # ============================================================================
 # HELPERS
@@ -239,6 +243,46 @@ if segment_enabled "ts_errors" && [[ -n "${cwd:-}" ]]; then
 fi
 
 # ============================================================================
+# SEGMENT: last_commit
+# ============================================================================
+seg_last_commit=""
+if segment_enabled "last_commit" && [[ -n "${cwd:-}" ]] && [[ -n "$git_branch" ]]; then
+  last_ts=$(git --no-optional-locks -C "$cwd" log -1 --format=%ct 2>/dev/null || true)
+  if [[ -n "${last_ts:-}" ]]; then
+    now_ts=$(date +%s)
+    age=$(( now_ts - last_ts ))
+    if [[ "$age" -lt 60 ]]; then
+      age_str="${age}s ago"
+    elif [[ "$age" -lt 3600 ]]; then
+      age_str="$(( age / 60 ))m ago"
+    elif [[ "$age" -lt 86400 ]]; then
+      age_str="$(( age / 3600 ))h ago"
+    else
+      age_str="$(( age / 86400 ))d ago"
+    fi
+    if [[ "$age" -ge 7200 ]]; then
+      lc_color='\033[31m'   # red   > 2h
+    elif [[ "$age" -ge 1800 ]]; then
+      lc_color='\033[33m'   # yellow > 30min
+    else
+      lc_color='\033[32m'   # green
+    fi
+    seg_last_commit=$(printf "${lc_color}%s %s\033[0m" "$ICON_LAST_COMMIT" "$age_str")
+  fi
+fi
+
+# ============================================================================
+# SEGMENT: stash
+# ============================================================================
+seg_stash=""
+if segment_enabled "stash" && [[ -n "${cwd:-}" ]] && [[ -n "$git_branch" ]]; then
+  stash_count=$(git --no-optional-locks -C "$cwd" stash list 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$stash_count" -gt 0 ]]; then
+    seg_stash=$(printf '\033[33m%s %s\033[0m' "$ICON_STASH" "$stash_count")
+  fi
+fi
+
+# ============================================================================
 # ASSEMBLE OUTPUT
 # ============================================================================
 parts=()
@@ -254,6 +298,8 @@ parts=()
 [[ -n "$seg_duration" ]]     && parts+=("$seg_duration")
 [[ -n "$seg_lines" ]]        && parts+=("$seg_lines")
 [[ -n "$seg_ts_errors" ]]    && parts+=("$seg_ts_errors")
+[[ -n "$seg_last_commit" ]]  && parts+=("$seg_last_commit")
+[[ -n "$seg_stash" ]]        && parts+=("$seg_stash")
 
 # Join with separator
 output=""
