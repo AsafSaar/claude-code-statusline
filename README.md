@@ -12,10 +12,12 @@ A configurable, segment-based status line for [Claude Code](https://docs.anthrop
 - **Ahead/behind** — ↑↓ commits ahead/behind remote tracking branch
 - **Model name** — 🧠 which Claude model is active (Opus, Sonnet, Haiku)
 - **Node.js version** — ⬢ detected from your shell environment
-- **Context usage** — 🔋 color-coded: green (<50%), yellow (50-79%), red (80%+)
+- **Context usage** — 🔋 progress bar with color: green (<50%), yellow (50-79%), red (80%+)
 - **Session cost** — 💰 real cost from Claude Code (not estimated)
 - **Session duration** — ⏱ how long you've been in this session (with seconds)
 - **Lines changed** — ✏ lines added/removed this session
+- **Last commit age** — ⏰ time since last commit, color-coded (green/yellow/red)
+- **Stash count** — 📦 number of stashed changesets (hidden when 0)
 - **TypeScript errors** — ⚠ from a cached `tsc` output (non-blocking)
 - **Fully configurable** — toggle any segment on/off via a simple array
 - **Cross-platform** — works on macOS, Linux, and Windows
@@ -91,10 +93,12 @@ Then restart Claude Code.
 | `ahead_behind` | ↑↓ | Yellow | When > 0 | `git rev-list --left-right` |
 | `model` | 🧠 | Light purple | When present | `json.model.display_name` |
 | `node` | ⬢ | Green | When node is available | `node --version` |
-| `context` | 🔋 | Green/Yellow/Red | When present | `json.context_window.used_percentage` |
+| `context` | 🔋 + progress bar | Green/Yellow/Red | When present | `json.context_window.used_percentage` |
 | `cost` | 💰 | Magenta | When present | `json.cost.total_cost_usd` |
 | `duration` | ⏱ | Blue | When > 0s | `json.cost.total_duration_ms` |
 | `lines` | ✏ | Green/Red | When > 0 | `json.cost.total_lines_added/removed` |
+| `last_commit` | ⏰ | Green/Yellow/Red | In git repos | `git log -1 --format=%ct` |
+| `stash` | 📦 | Yellow | When > 0 | `git stash list` |
 | `ts_errors` | ⚠ | Red | When > 0 (cached) | `/tmp/tsc-errors-<hash>.txt` |
 
 ## Customization
@@ -115,6 +119,8 @@ ENABLED_SEGMENTS=(
   "cost"
   "duration"
   # "lines"
+  # "last_commit"
+  # "stash"
   # "ts_errors"
 )
 ```
@@ -133,6 +139,8 @@ $EnabledSegments = @(
     "cost"
     "duration"
     # "lines"
+    # "last_commit"
+    # "stash"
     # "ts_errors"
 )
 ```
@@ -161,6 +169,8 @@ ICON_COST="💰"
 ICON_DURATION="⏱"
 ICON_LINES="✏"
 ICON_TS_ERRORS="⚠"
+ICON_LAST_COMMIT="⏰"
+ICON_STASH="📦"
 ```
 
 Replace any icon with your preferred Unicode character or emoji, or set to `""` to remove it.
