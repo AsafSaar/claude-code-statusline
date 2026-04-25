@@ -39,11 +39,11 @@ curl -fsSL https://raw.githubusercontent.com/AsafSaar/claude-code-statusline/mai
 cp statusline.sh ~/.claude/statusline.sh
 chmod +x ~/.claude/statusline.sh
 
-# 2. Add to ~/.claude/settings.json
-# (create the file if it doesn't exist)
 ```
 
 ```json
+# 2. Add to ~/.claude/settings.json
+# (create the file if it doesn't exist)
 {
   "statusLine": {
     "type": "command",
