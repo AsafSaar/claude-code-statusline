@@ -26,6 +26,8 @@ ENABLED_SEGMENTS=(
   "ts_errors"     # TypeScript errors (cached)
   "last_commit"   # Time since last git commit (green/yellow/red)
   "stash"         # Number of stashed changesets
+  "effort"        # Reasoning effort level (low/medium/high/xhigh/max)
+  "rate_limits"   # Claude.ai 5h/7d rate-limit usage %
 )
 
 # Separator between segments (dimmed pipe)
@@ -45,6 +47,8 @@ ICON_LINES="✏"
 ICON_TS_ERRORS="⚠"
 ICON_LAST_COMMIT="⏰"
 ICON_STASH="📦"
+ICON_EFFORT="🎚"
+ICON_RATE_LIMIT="⏳"
 
 # ============================================================================
 # HELPERS
@@ -283,6 +287,59 @@ if segment_enabled "stash" && [[ -n "${cwd:-}" ]] && [[ -n "$git_branch" ]]; the
 fi
 
 # ============================================================================
+# SEGMENT: effort
+# ============================================================================
+seg_effort=""
+if segment_enabled "effort"; then
+  effort_level=$(echo "$input" | jq -r '.effort.level // empty')
+  if [[ -n "${effort_level:-}" ]]; then
+    case "$effort_level" in
+      low)    eff_color='\033[32m' ;;  # green
+      medium) eff_color='\033[36m' ;;  # cyan
+      high)   eff_color='\033[33m' ;;  # yellow
+      xhigh)  eff_color='\033[35m' ;;  # magenta
+      max)    eff_color='\033[31m' ;;  # red
+      *)      eff_color='\033[37m' ;;
+    esac
+    seg_effort=$(printf "${eff_color}%s %s\033[0m" "$ICON_EFFORT" "$effort_level")
+  fi
+fi
+
+# ============================================================================
+# SEGMENT: rate_limits
+# ============================================================================
+seg_rate_limits=""
+if segment_enabled "rate_limits"; then
+  five_h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
+  seven_d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
+  if [[ -n "${five_h:-}" ]] || [[ -n "${seven_d:-}" ]]; then
+    rl_parts=()
+    for pair in "5h:$five_h" "7d:$seven_d"; do
+      label="${pair%%:*}"
+      val="${pair#*:}"
+      [[ -z "$val" ]] && continue
+      val_int=$(printf '%.0f' "$val")
+      if [[ "$val_int" -ge 80 ]]; then
+        rl_color='\033[31m'
+      elif [[ "$val_int" -ge 50 ]]; then
+        rl_color='\033[33m'
+      else
+        rl_color='\033[32m'
+      fi
+      rl_parts+=("$(printf "${rl_color}%s %s%%\033[0m" "$label" "$val_int")")
+    done
+    if [[ ${#rl_parts[@]} -gt 0 ]]; then
+      joined=""
+      for i in "${!rl_parts[@]}"; do
+        [[ "$i" -gt 0 ]] && joined+=" "
+        joined+="${rl_parts[$i]}"
+      done
+      seg_rate_limits=$(printf '\033[37m%s\033[0m %s' "$ICON_RATE_LIMIT" "$joined")
+    fi
+  fi
+fi
+
+# ============================================================================
 # ASSEMBLE OUTPUT
 # ============================================================================
 parts=()
@@ -300,6 +357,8 @@ parts=()
 [[ -n "$seg_ts_errors" ]]    && parts+=("$seg_ts_errors")
 [[ -n "$seg_last_commit" ]]  && parts+=("$seg_last_commit")
 [[ -n "$seg_stash" ]]        && parts+=("$seg_stash")
+[[ -n "$seg_effort" ]]       && parts+=("$seg_effort")
+[[ -n "$seg_rate_limits" ]]  && parts+=("$seg_rate_limits")
 
 # Join with separator
 output=""

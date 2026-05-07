@@ -18,6 +18,8 @@ A configurable, segment-based status line for [Claude Code](https://docs.anthrop
 - **Lines changed** — ✏ lines added/removed this session
 - **Last commit age** — ⏰ time since last commit, color-coded (green/yellow/red)
 - **Stash count** — 📦 number of stashed changesets (hidden when 0)
+- **Reasoning effort** — 🎚 current `effort.level` (low/medium/high/xhigh/max), updates live with `/effort`
+- **Rate limits** — ⏳ Claude.ai 5h/7d quota burn % with color thresholds (Pro/Max plans only)
 - **TypeScript errors** — ⚠ from a cached `tsc` output (non-blocking)
 - **Fully configurable** — toggle any segment on/off via a simple array
 - **Cross-platform** — works on macOS, Linux, and Windows
@@ -47,10 +49,13 @@ chmod +x ~/.claude/statusline.sh
 {
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.claude/statusline.sh"
+    "command": "bash ~/.claude/statusline.sh",
+    "refreshInterval": 30
   }
 }
 ```
+
+> **Tip:** `refreshInterval` (in seconds) re-runs the script on a timer in addition to Claude Code's event-driven updates. Useful so time-based segments like `last_commit` and `duration` don't go stale while the session is idle (for example, during background subagent work). Omit it to update only on events.
 
 ### Windows (PowerShell)
 
@@ -99,6 +104,8 @@ Then restart Claude Code.
 | `lines` | ✏ | Green/Red | When > 0 | `json.cost.total_lines_added/removed` |
 | `last_commit` | ⏰ | Green/Yellow/Red | In git repos | `git log -1 --format=%ct` |
 | `stash` | 📦 | Yellow | When > 0 | `git stash list` |
+| `effort` | 🎚 | Varies by level | When model supports it | `json.effort.level` |
+| `rate_limits` | ⏳ | Green/Yellow/Red | Claude.ai Pro/Max only | `json.rate_limits.{five_hour,seven_day}.used_percentage` |
 | `ts_errors` | ⚠ | Red | When > 0 (cached) | `/tmp/tsc-errors-<hash>.txt` |
 
 ## Customization
@@ -209,6 +216,9 @@ The status line receives a JSON object on stdin from Claude Code. Key fields use
 | `cost.total_duration_ms` | number | Session duration in milliseconds |
 | `cost.total_lines_added` | number | Lines added this session |
 | `cost.total_lines_removed` | number | Lines removed this session |
+| `effort.level` | string | Reasoning effort: `low`, `medium`, `high`, `xhigh`, `max` |
+| `rate_limits.five_hour.used_percentage` | number | 5-hour rate-limit usage % (Claude.ai Pro/Max) |
+| `rate_limits.seven_day.used_percentage` | number | 7-day rate-limit usage % (Claude.ai Pro/Max) |
 
 ## Examples
 

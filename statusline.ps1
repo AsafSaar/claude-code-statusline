@@ -27,6 +27,8 @@ $EnabledSegments = @(
     "ts_errors"     # TypeScript errors (cached)
     "last_commit"   # Time since last git commit (green/yellow/red)
     "stash"         # Number of stashed changesets
+    "effort"        # Reasoning effort level (low/medium/high/xhigh/max)
+    "rate_limits"   # Claude.ai 5h/7d rate-limit usage %
 )
 
 # Separator between segments (dimmed pipe)
@@ -285,6 +287,57 @@ if ((Test-SegmentEnabled "stash") -and $cwd -and $git_branch) {
 }
 
 # ============================================================================
+# SEGMENT: effort
+# ============================================================================
+$seg_effort = ""
+if (Test-SegmentEnabled "effort") {
+    $effort_level = $json.effort.level
+    if ($effort_level) {
+        switch ($effort_level) {
+            "low"    { $eff_color = "$ESC[32m" }
+            "medium" { $eff_color = "$ESC[36m" }
+            "high"   { $eff_color = "$ESC[33m" }
+            "xhigh"  { $eff_color = "$ESC[35m" }
+            "max"    { $eff_color = "$ESC[31m" }
+            default  { $eff_color = "$ESC[37m" }
+        }
+        $slider = [char]::ConvertFromUtf32(0x1F39A)
+        $seg_effort = "${eff_color}$slider $effort_level$ESC[0m"
+    }
+}
+
+# ============================================================================
+# SEGMENT: rate_limits
+# ============================================================================
+$seg_rate_limits = ""
+if (Test-SegmentEnabled "rate_limits") {
+    $five_h = $json.rate_limits.five_hour.used_percentage
+    $seven_d = $json.rate_limits.seven_day.used_percentage
+    if ($null -ne $five_h -or $null -ne $seven_d) {
+        $rl_parts = @()
+        foreach ($pair in @(@("5h", $five_h), @("7d", $seven_d))) {
+            $label = $pair[0]
+            $val = $pair[1]
+            if ($null -eq $val) { continue }
+            $val_int = [math]::Round([double]$val)
+            if ($val_int -ge 80) {
+                $rl_color = "$ESC[31m"
+            } elseif ($val_int -ge 50) {
+                $rl_color = "$ESC[33m"
+            } else {
+                $rl_color = "$ESC[32m"
+            }
+            $rl_parts += "${rl_color}$label ${val_int}%$ESC[0m"
+        }
+        if ($rl_parts.Count -gt 0) {
+            $hourglass = [char]::ConvertFromUtf32(0x231B)
+            $joined = $rl_parts -join " "
+            $seg_rate_limits = "$ESC[37m$hourglass$ESC[0m $joined"
+        }
+    }
+}
+
+# ============================================================================
 # ASSEMBLE OUTPUT
 # ============================================================================
 $parts = @()
@@ -302,6 +355,8 @@ if ($seg_lines)        { $parts += $seg_lines }
 if ($seg_ts_errors)    { $parts += $seg_ts_errors }
 if ($seg_last_commit)  { $parts += $seg_last_commit }
 if ($seg_stash)        { $parts += $seg_stash }
+if ($seg_effort)       { $parts += $seg_effort }
+if ($seg_rate_limits)  { $parts += $seg_rate_limits }
 
 $output = $parts -join $Sep
 
